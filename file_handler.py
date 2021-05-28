@@ -54,7 +54,7 @@ def fileEncoder(path):
             return rawDataString
 
 
-def decoder(messageBody, basePath, commit_message):
+def decoder(messageBody, basePath, commit_message=None):
     bodyList = str(messageBody).split("\n")
     recievedFiles = {}
 
@@ -95,8 +95,9 @@ def decoder(messageBody, basePath, commit_message):
             with open(basePath + "/" + key, 'wb') as outputFile:
                 outputFile.write(decodedData)
 
-    try:
-        with open(basePath + "/" + "commits.txt", "a") as o:
-            o.write("{}|{}\n".format(commit_message, datetime.now()))
-    except FileExistsError:
-        print("Commit file not found!")
+    if commit_message is not None:
+        try:
+            with open(basePath + "/" + "commits.txt", "a") as o:
+                o.write("{}|{}\n".format(commit_message, datetime.now()))
+        except FileExistsError:
+            print("Commit file not found!")
