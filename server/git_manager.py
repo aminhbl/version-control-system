@@ -1,7 +1,8 @@
 import os
 import pickle
 import file_handler
-from account import *
+import subprocess
+from server.account import Account
 
 
 def authenticate_user(username, password):
@@ -17,9 +18,9 @@ def authenticate_user(username, password):
 def load_users():
     file = None
     try:
-        file = open('./data/users.raw', 'rb')
+        file = open('server/DB/accounts', 'rb')
         users = pickle.load(file)
-    except IOError as er:
+    except IOError:
         users = list()
     finally:
         if file is not None:
@@ -31,7 +32,7 @@ def load_users():
 def save_users(users):
     file = None
     try:
-        file = open('./data/users.raw', 'wb')
+        file = open('server/DB/accounts', 'wb')
         pickle.dump(users, file)
     except IOError as error:
         print(error)
@@ -53,7 +54,7 @@ def allocate_new_user(username, password):
     save_users(users)
 
     base_directory = new_user.get_username()
-    path = os.path.join('./data', base_directory)
+    path = os.path.join('server/DB', base_directory)
 
     try:
         os.mkdir(path)
@@ -69,21 +70,47 @@ def pull_server_side(username, password, repository, path, type_):
         return None
     pathT = path
 
+    repositories = user.get_repositories()
+    answer = ""
+    for x in repositories:
+        if x == repository:
+            answer = repositories[x]
+            break
+
     last = os.getcwd()
-    os.chdir("data/" + user.get_username() + "/" + repository)
+    print("server/DB/" + answer.get_username() + "/" + repository)
+    os.chdir("server/DB/" + answer.get_username() + "/" + repository)
     ans = file_handler.encoder(type_, pathT)
     os.chdir(last)
 
+    print(ans)
+    return ans
+
+
+def Opull_server_side(username, repository, path, type_):
+    pathT = path
+    last = os.getcwd()
+    os.chdir("server/DB/" + username + "/" + repository)
+    ans = file_handler.encoder(type_, pathT)
+    os.chdir(last)
     return ans
 
 
 def push_server_side(username, password, messageBody, repository, commit_message):
     user = authenticate_user(username, password)
     if user is None:
-        return None
-    pathT = "data/" + user.get_username() + "/" + repository
+        return False
+    repositories = user.get_repositories()
+    answer = ""
+    for x in repositories:
+        if x == repository:
+            answer = repositories[x]
+            break
+    pathT = "server/DB/" + answer.get_username() + "/" + repository
     print(pathT)
     file_handler.decoder(messageBody, pathT, commit_message)
+
+    return True
 
 
 def pull_client_side(path, type_):
@@ -94,13 +121,29 @@ def push_client_side(messageBody, path):
     file_handler.decoder(messageBody, path)
 
 
+def add_contributor(username, password, new_user_username, repository):
+    user = authenticate_user(username, password)
+    users = load_users()
+    if user is None:
+        return False
+
+    target_user = None
+    for user_ in users:
+        if user_.get_username() == new_user_username:
+            user_.add_repository(repository, self_owner=False, owner_user=user)
+            save_users(users)
+            return True
+
+    return False
+
+
 def create_repository_for_user(username, password, repository_name):
     user = authenticate_user(username, password)
     users = load_users()
     if user is None:
         return False
     base_directory = user.get_username()
-    path = os.path.join('./data', base_directory, repository_name)
+    path = os.path.join('server/DB', base_directory, repository_name)
 
     try:
         os.mkdir(path)
@@ -114,4 +157,3 @@ def create_repository_for_user(username, password, repository_name):
     save_users(users)
 
     return True
-

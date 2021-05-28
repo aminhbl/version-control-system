@@ -1,11 +1,9 @@
-
-
 class Account:
 
     def __init__(self, username, password):
         self.__username = username
         self.__password = password
-        self.__repositories = dict()
+        self.__repositories = dict()  # {repository_name: owner_name}
 
     def get_username(self):
         return self.__username
@@ -19,8 +17,11 @@ class Account:
     def __eq__(self, other):
         return self.__username == other.get_username()
 
-    def add_repository(self, repository_name):
-        self.__repositories[repository_name] = set().add(self.__username)
+    def add_repository(self, repository_name, self_owner=True, owner_user=None):
+        if self_owner:
+            self.__repositories[repository_name] = self
+        else:
+            self.__repositories[repository_name] = owner_user
 
     def get_repositories(self):
         return self.__repositories

@@ -2,8 +2,8 @@ import math
 import os
 import socket
 import sys
-from client_parser import parseInput
-from git_manager import push_client_side
+from client.client_parser import parseInput
+from server.git_manager import push_client_side
 
 HOST = "127.0.0.1"
 PORT = 8000
@@ -30,15 +30,15 @@ def client():
             data = data.decode("ascii")
             string_data = ""
             for i in range(math.ceil(int(data) / 2048)):
-                temp = s.recv(2048).decode()
+                temp = s.recv(2048)
+                temp = temp.decode()
                 string_data = string_data + str(temp)
 
             if string_data.startswith("pull_request"):
                 string_data = string_data[12:]
                 push_client_side(string_data, "./")
-                print("pull successful!")
             else:
-                print('Received from the server:\n', string_data)
+                print('Received from the server:', string_data)
             if message == 'stop':
                 break
 
@@ -49,6 +49,8 @@ def client():
 
 
 if __name__ == '__main__':
+    # C:/Users/Amin/Desktop/C/dns
+    # C:\Users\Amin\Desktop\C\dns
     local_dir = input("Enter you Local directory: ")
     os.chdir(local_dir)
     client()

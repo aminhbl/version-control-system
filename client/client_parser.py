@@ -1,4 +1,4 @@
-from git_manager import pull_client_side
+from server.git_manager import pull_client_side
 
 
 def printHelp():
@@ -62,6 +62,30 @@ def parseInput(command):
 
     if command.startswith("view"):
         messageToSend = "8$"
+
+    if command.startswith("sync"):
+        messageToSend = messageToSend + "9$"
+
+    if command.startswith("userslist"):
+        messageToSend = messageToSend + "10$"
+
+    if command.startswith("cont"):
+        parts = command.split()
+        messageToSend = messageToSend + "11$"
+        messageToSend = messageToSend + parts[1] + "$"
+
+    if command.startswith("repolsof"):
+        parts = command.split()
+        messageToSend = messageToSend + "12$"
+        messageToSend = messageToSend + parts[1] + "$"
+
+    if command.startswith("Opull"):
+        parts = command.split()
+        messageToSend = messageToSend + "13$"
+        messageToSend = messageToSend + parts[1] + "$"
+        messageToSend = messageToSend + parts[2] + "$"
+        messageToSend = messageToSend + parts[3][1] + "$"
+        messageToSend = messageToSend + parts[4][1:-1] + "$"
 
     return messageToSend
 

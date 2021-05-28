@@ -2,7 +2,7 @@ import math
 import socket
 import threading
 from copy import deepcopy
-import server_parser
+from server import server_parser
 from git_manager import authenticate_user
 
 HOST = "127.0.0.1"
@@ -30,18 +30,17 @@ class ClientHandler(threading.Thread):
     def run(self):
         username = password = current_repository = None
         while True:
-            data_size = self.connection.recv(2048)
-            data_size = data_size.decode()
+            data = self.connection.recv(2048)
+            data = data.decode()
             string_data = ""
-            for i in range(math.ceil(int(data_size) / 2048)):
-                rec = self.connection.recv(2048).decode()
-                string_data = string_data + str(rec)
+            for i in range(math.ceil(int(data) / 2048)):
+                temp = self.connection.recv(2048)
+                temp = temp.decode()
+                string_data = string_data + str(temp)
             if not string_data:
                 break
-
             if username is not None:
-                user = authenticate_user(username, password)
-                answer = server_parser.parseReceivedMessage(string_data, user, current_repository)
+                answer = server_parser.parseReceivedMessage(string_data, authenticate_user(username, password), current_repository)
             else:
                 answer = server_parser.parseReceivedMessage(string_data, None, current_repository)
 

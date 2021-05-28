@@ -28,30 +28,16 @@ def directoryEncoder(path):
 
 
 def fileEncoder(path):
-    try:
-        if path.count("/") != 0:
-            os.makedirs("/".join(path.split('/')[0:-1]))
-        with open(path, 'rb') as inputFile:
-            rawData = inputFile.read()
-            encodedData = b64encode(rawData)
-            compressedData = zlib.compress(encodedData, 9)
-            rawDataString = ""
+    with open(path, 'rb') as inputFile:
+        rawData = inputFile.read()
+        encodedData = b64encode(rawData)
+        compressedData = zlib.compress(encodedData, 1)
+        rawDataString = ""
 
-            for i in compressedData:
-                rawDataString = rawDataString + str(i) + " "
-            rawDataString = rawDataString[0:len(rawDataString) - 1]
-            return rawDataString
-    except FileExistsError:
-        with open(path, 'rb') as inputFile:
-            rawData = inputFile.read()
-            encodedData = b64encode(rawData)
-            compressedData = zlib.compress(encodedData, 9)
-            rawDataString = ""
-
-            for i in compressedData:
-                rawDataString = rawDataString + str(i) + " "
-            rawDataString = rawDataString[0:len(rawDataString) - 1]
-            return rawDataString
+        for i in compressedData:
+            rawDataString = rawDataString + str(i) + " "
+        rawDataString = rawDataString[0:len(rawDataString) - 1]
+        return rawDataString
 
 
 def decoder(messageBody, basePath, commit_message=None):
