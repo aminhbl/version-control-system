@@ -1,6 +1,6 @@
 import os
 import pickle
-import file_handler
+import coding
 import subprocess
 from server.account import Account
 
@@ -80,7 +80,7 @@ def pull_server_side(username, password, repository, path, type_):
     last = os.getcwd()
     print("server/DB/" + answer.get_username() + "/" + repository)
     os.chdir("server/DB/" + answer.get_username() + "/" + repository)
-    ans = file_handler.encoder(type_, pathT)
+    ans = coding.encode(type_, pathT)
     os.chdir(last)
 
     print(ans)
@@ -91,7 +91,7 @@ def Opull_server_side(username, repository, path, type_):
     pathT = path
     last = os.getcwd()
     os.chdir("server/DB/" + username + "/" + repository)
-    ans = file_handler.encoder(type_, pathT)
+    ans = coding.encode(type_, pathT)
     os.chdir(last)
     return ans
 
@@ -108,17 +108,17 @@ def push_server_side(username, password, messageBody, repository, commit_message
             break
     pathT = "server/DB/" + answer.get_username() + "/" + repository
     print(pathT)
-    file_handler.decoder(messageBody, pathT, commit_message)
+    coding.decode(messageBody, pathT, commit_message)
 
     return True
 
 
 def pull_client_side(path, type_):
-    return file_handler.encoder(type_, path)
+    return coding.encode(type_, path)
 
 
 def push_client_side(messageBody, path):
-    file_handler.decoder(messageBody, path)
+    coding.decode(messageBody, path)
 
 
 def add_contributor(username, password, new_user_username, repository):
@@ -127,7 +127,6 @@ def add_contributor(username, password, new_user_username, repository):
     if user is None:
         return False
 
-    target_user = None
     for user_ in users:
         if user_.get_username() == new_user_username:
             user_.add_repository(repository, self_owner=False, owner_user=user)
