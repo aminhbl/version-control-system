@@ -2,7 +2,7 @@ import math
 import os
 import socket
 import sys
-from client.client_parser import parseInput
+from client.client_parser import build_message
 from server.git_manager import push_client_side
 
 HOST = "127.0.0.1"
@@ -19,9 +19,8 @@ def client():
         s.connect((HOST, PORT))
         while True:
             message = input()
-            toSendMessage = parseInput(message)
-            if toSendMessage == "":
-                print("Invalid input!!!")
+            toSendMessage = build_message(message)
+            if toSendMessage is None:
                 continue
             s.sendall(str(len(toSendMessage.encode('utf-8'))).encode('ascii'))
             s.sendall(toSendMessage.encode('ascii'))
@@ -34,23 +33,23 @@ def client():
                 temp = temp.decode()
                 string_data = string_data + str(temp)
 
-            if string_data.startswith("pull_request"):
-                string_data = string_data[12:]
+            if string_data.startswith("pull#"):
+                string_data = string_data[5:]
                 push_client_side(string_data, "./")
+                print('Pull successful')
             else:
-                print('Received from the server:', string_data)
+                print('$', string_data)
             if message == 'stop':
                 break
 
     except socket.error:
-        print('Shit hit the fan!')
+        print('Connection was disturbed!')
     finally:
         s.close()
 
 
 if __name__ == '__main__':
     # C:/Users/Amin/Desktop/C/dns
-    # C:\Users\Amin\Desktop\C\dns
     local_dir = input("Enter you Local directory: ")
     os.chdir(local_dir)
     client()

@@ -1,26 +1,26 @@
 import math
 import socket
 import threading
-from copy import deepcopy
 from server import server_parser
-from git_manager import authenticate_user
-
-HOST = "127.0.0.1"
-PORT = 8000
 
 
-def server():
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.bind((HOST, PORT))
-        print("Server is on!")
-        while True:
-            s.listen(1)
-            connection, address = s.accept()
-            new_thread = ClientHandler(address, connection)
-            new_thread.start()
+class Server:
+    def __init__(self, port, host):
+        self.port = port
+        self.host = host
+        self.online = True
+
+    def run(self):
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.bind((self.host, self.port))
+            print("$_$")
+            while self.online:
+                s.listen(1)
+                connection, address = s.accept()
+                ThreadHandler(address, connection).start()
 
 
-class ClientHandler(threading.Thread):
+class ThreadHandler(threading.Thread):
     def __init__(self, address, client_socket):
         threading.Thread.__init__(self)
         self.connection = client_socket
@@ -28,30 +28,31 @@ class ClientHandler(threading.Thread):
         print("connection established with: ", address)
 
     def run(self):
-        username = password = current_repository = None
-        while True:
-            data = self.connection.recv(2048)
-            data = data.decode()
-            string_data = ""
-            for i in range(math.ceil(int(data) / 2048)):
-                temp = self.connection.recv(2048)
-                temp = temp.decode()
-                string_data = string_data + str(temp)
-            if not string_data:
-                break
-            if username is not None:
-                answer = server_parser.parseReceivedMessage(string_data, authenticate_user(username, password), current_repository)
-            else:
-                answer = server_parser.parseReceivedMessage(string_data, None, current_repository)
+        account = None
+        curr_repo = None
+        run = True
+        while run:
+            rec_message = ""
+            message_size = self.connection.recv(2048).decode()
+            for _ in range(math.ceil(int(message_size) / 2048)):
+                message_part = self.connection.recv(2048).decode()
+                if not message_part:
+                    run = False
+                    break
+                rec_message = rec_message + str(message_part)
 
-            if type(answer) == list and len(answer) == 2:
-                username = deepcopy(answer[0])
-                password = deepcopy(answer[1])
-                answer = "User logged in"
-            if type(answer) == list and len(answer) == 1:
-                current_repository = answer[0]
-                answer = "Repository selected :)"
+            cmd, answer = server_parser.parse_message(rec_message, account, curr_repo)
 
+            if cmd == "signUp" or cmd == 'login':
+                if answer is not None:
+                    account = answer
+                    answer = 'Login successful'
+            if cmd == 'goto':
+                if answer is not None:
+                    curr_repo = answer
+                    answer = "{} repo is pinned".format(answer)
+                else:
+                    answer = 'Wrong repo name!'
             if answer is None:
                 answer = "ERROR!"
 
@@ -63,4 +64,5 @@ class ClientHandler(threading.Thread):
 
 
 if __name__ == '__main__':
-    server()
+    server = Server(8000, "127.0.0.1")
+    server.run()

@@ -5,8 +5,8 @@ import subprocess
 from server.account import Account
 
 
-def authenticate_user(username, password):
-    users = load_users()
+def authenticate_account(username, password):
+    users = load_accounts()
 
     for user in users:
         if user.get_username() == username and user.check_password(password):
@@ -15,7 +15,7 @@ def authenticate_user(username, password):
     return None
 
 
-def load_users():
+def load_accounts():
     file = None
     try:
         file = open('server/DB/accounts', 'rb')
@@ -29,7 +29,7 @@ def load_users():
     return users
 
 
-def save_users(users):
+def save_accounts(users):
     file = None
     try:
         file = open('server/DB/accounts', 'wb')
@@ -40,32 +40,24 @@ def save_users(users):
         file.close()
 
 
-def allocate_new_user(username, password):
-    users = load_users()
-
+def create_account(username, password):
+    users = load_accounts()
     new_user = Account(username, password)
-
     for user in users:
         if new_user == user:
             return False
-
     users.append(new_user)
-
-    save_users(users)
-
-    base_directory = new_user.get_username()
-    path = os.path.join('server/DB', base_directory)
-
+    save_accounts(users)
+    account_root = os.path.join('server/DB', new_user.get_username())
     try:
-        os.mkdir(path)
+        os.mkdir(account_root)
     except OSError as error:
         print(error)
-
     return True
 
 
 def pull_server_side(username, password, repository, path, type_):
-    user = authenticate_user(username, password)
+    user = authenticate_account(username, password)
     if user is None:
         return None
     pathT = path
@@ -97,7 +89,7 @@ def Opull_server_side(username, repository, path, type_):
 
 
 def push_server_side(username, password, messageBody, repository, commit_message):
-    user = authenticate_user(username, password)
+    user = authenticate_account(username, password)
     if user is None:
         return False
     repositories = user.get_repositories()
@@ -122,23 +114,23 @@ def push_client_side(messageBody, path):
 
 
 def add_contributor(username, password, new_user_username, repository):
-    user = authenticate_user(username, password)
-    users = load_users()
+    user = authenticate_account(username, password)
+    users = load_accounts()
     if user is None:
         return False
 
     for user_ in users:
         if user_.get_username() == new_user_username:
             user_.add_repository(repository, self_owner=False, owner_user=user)
-            save_users(users)
+            save_accounts(users)
             return True
 
     return False
 
 
-def create_repository_for_user(username, password, repository_name):
-    user = authenticate_user(username, password)
-    users = load_users()
+def create_repo(username, password, repository_name):
+    user = authenticate_account(username, password)
+    users = load_accounts()
     if user is None:
         return False
     base_directory = user.get_username()
@@ -153,6 +145,6 @@ def create_repository_for_user(username, password, repository_name):
             user_.add_repository(repository_name)
             break
 
-    save_users(users)
+    save_accounts(users)
 
     return True

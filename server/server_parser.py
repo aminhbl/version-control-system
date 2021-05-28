@@ -1,99 +1,97 @@
 from git_manager import *
+import file_handler
+from account import *
 
 
-def parseReceivedMessage(command, user, current_repository):
-    parts = command.split("$")
-    action = parts[0]
-    print("action: ", action)
-    if action == '1' and user is None:
-        ans = allocate_new_user(parts[1], parts[2])
-        # user = authenticate_user(parts[1], parts[2])
-        if not ans:
-            return "User exists"
-        return "User created"
+def parse_message(message, account, curr_repo):
+    split_message = message.split("#")
+    cmd = split_message[0]
+    print("cmd: ", cmd)
+    curr_username = None
+    curr_pass = None
+    repositories = None
+    if account is not None:
+        account = authenticate_account(account.get_username(), account.get_password())
+        curr_username = account.get_username()
+        curr_pass = account.get_password()
+        repositories = account.get_repositories()
+        print(repositories)
 
-    if action == '2' and user is None:
-        user = authenticate_user(parts[1], parts[2])
-        if user is None:
-            return None
-        return [user.get_username(), user.get_password()]
+    if cmd == 'signUp':
+        res = create_account(split_message[1], split_message[2])
+        if not res:
+            return cmd, "Choose another username!"
+        account = authenticate_account(split_message[1], split_message[2])
+        return cmd, account
 
-    if action == '3' and user is not None:
-        create_repository_for_user(user.get_username(), user.get_password(), parts[1])
-        return "done"
+    if cmd == 'login':
+        account = authenticate_account(split_message[1], split_message[2])
+        if account is None:
+            return cmd, 'Login failed!'
+        else:
+            return cmd, account
 
-    if action == '4' and user is not None:
-        repositories = user.get_repositories()
-        answer = ""
-        for x in repositories:
-            answer = answer + "\n" + str(x)
-        return answer
+    if cmd == 'origin':
+        res = create_repo(curr_username, curr_pass, split_message[1])
+        print(res)
+        return cmd, "Repo created."
 
-    if action == '5' and user is not None:
-        if current_repository is not None:
-            return "Your are currently in a repository!!!"
-        repository_name = parts[1]
-        repositories = user.get_repositories()
-        exist = False
-        for x in repositories:
-            if str(x) == str(repository_name):
-                exist = True
-                break
-        if not exist:
-            return None
-        return [repository_name]
+    if cmd == 'lsRepo':
+        repo_list = list(repositories.keys())
+        repos = '{}\'s repos:\n'.format(curr_username)
+        repos += "\n".join(repo_list)
+        if repos == '{}\'s repos:\n'.format(curr_username):
+            repos = "No repo yet!"
+        return cmd, repos
 
-    if action == '6' and user is not None:
-        if current_repository is None:
-            return "First choose a repository"
-        push_server_side(user.get_username(), user.get_password(), parts[2], current_repository, parts[1])
-        return "Pushed successfully"
+    if cmd == 'goto':
+        repository_name = split_message[1]
+        for repo in repositories:
+            if str(repo) == str(repository_name):
+                return cmd, repository_name
+        return cmd, None
 
-    if action == '7' and user is not None:
-        if current_repository is None:
-            return "First choose a repository"
-        body = pull_server_side(user.get_username(), user.get_password(), current_repository, parts[2], parts[1])
-        return "pull_request" + str(body)
+    if cmd == 'allAccounts':
+        accounts = list(map(Account.get_username, load_accounts()))
+        accounts_list = 'All the accounts:\n'
+        accounts_list += "\n".join(accounts)
+        return cmd, accounts_list
 
-    if action == '8' and user is not None:
-        if current_repository is None:
-            return "First choose a repository"
-        try:
-            with open("DB/" + user.get_username() + "/" + current_repository + "/commits.txt", "r") as o:
-                return o.read()
-        except FileExistsError:
-            print("Commit file not found!")
+    if cmd == 'rlsRepo':
+        accounts = load_accounts()
+        for u in accounts:
+            if u.get_username() == split_message[1]:
+                print(u.get_repositories())
+                repositories = list(u.get_repositories().keys())
+                repos = '{}\'s repos:\n'.format(u.get_username())
+                repos += '\n'.join(repositories)
+                return cmd, repos
+        return cmd, "Account not found!"
 
-    if action == '9' and user is not None:
-        if current_repository is None:
-            return "First choose a repository"
-        body = pull_server_side(user.get_username(), user.get_password(), current_repository, "./", "-d")
-        return "pull_request" + str(body)
+    if cmd == '+Pull':
+        return cmd, "pull#" + str(Opull_server_side(split_message[1], split_message[2], split_message[4],
+                                                    split_message[3]))
 
-    if action == '10':
-        users = load_users()
-        print(type(users))
-        ans = ""
-        for i in users:
-            ans = ans + "\n" + i.get_username()
-        return ans
+    if curr_repo is not None:
+        if cmd == 'push':
+            push_server_side(curr_username, curr_pass, split_message[2], curr_repo, split_message[1])
+            return cmd, "Push successful"
 
-    if action == '11' and user is not None:
-        if current_repository is None:
-            return "First choose a repository"
-        add_contributor(user.get_username(), user.get_password(), parts[1], current_repository)
-        return "Added successfully"
+        if cmd == 'pull':
+            return cmd, "pull#" + str(pull_server_side(curr_username, curr_pass, curr_repo, split_message[2],
+                                                       split_message[1]))
 
-    if action == '12' and user is not None:
-        users = load_users()
-        for user_ in users:
-            if user_.get_username() == parts[1]:
-                repositories = user_.get_repositories()
-                answer = ""
-                for x in repositories:
-                    answer = answer + "\n" + str(x)
-                return answer
+        if cmd == 'lsComm':
+            commit_path = "server/DB/" + curr_username + "/" + curr_repo + "/commits.txt"
+            return cmd, 'Current repo\'s commits:\n' + file_handler.read_text(commit_path)
 
-    if action == '13' and user is not None:
-        body = Opull_server_side(parts[1], parts[2], parts[4], parts[3])
-        return "pull_request" + str(body)
+        if cmd == 'sync':
+            return "pull#" + str(pull_server_side(curr_username, curr_pass, curr_repo, "./", "-d"))
+
+        if cmd == 'invCollab':
+            if split_message[1] is None:
+                return cmd, 'User not specified!'
+            add_contributor(curr_username, curr_pass, split_message[1], curr_repo)
+            return cmd, "{} added as new collaborator".format(split_message[1])
+    else:
+        return cmd, "Choose a repo first!"
