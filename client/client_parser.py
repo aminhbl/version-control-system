@@ -1,8 +1,8 @@
 from server.git_manager import pull_client_side
+import os
 
 
 def build_message(cmd):
-
     cmd = str(cmd)
     parts = cmd.split()
 
@@ -61,7 +61,8 @@ def build_message(cmd):
     if "+Pull" in cmd:
         return "#".join(["+Pull", parts[1], parts[2], parts[3][1], parts[4][1:-1], "#"])
 
+    if cmd.startswith('cd'):
+        return "cd" + parts[1]
+
     print('Wrong input!')
     return None
-
-

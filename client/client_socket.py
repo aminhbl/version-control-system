@@ -5,51 +5,59 @@ import sys
 from client.client_parser import build_message
 from server.git_manager import push_client_side
 
-HOST = "127.0.0.1"
-PORT = 8000
 
+class Client:
+    def __init__(self, port, host, curr_dir):
+        self.port = port
+        self.host = host
+        self.online = True
+        self.curr_dir = curr_dir
+        os.chdir(curr_dir)
 
-def client():
-    try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    except socket.error:
-        print('Unable to connect to the server')
-        sys.exit(-1)
-    try:
-        s.connect((HOST, PORT))
-        while True:
-            message = input()
-            toSendMessage = build_message(message)
-            if toSendMessage is None:
-                continue
-            s.sendall(str(len(toSendMessage.encode('utf-8'))).encode('ascii'))
-            s.sendall(toSendMessage.encode('ascii'))
+    def change_dir(self):
+        os.chdir(self.curr_dir)
 
-            data = s.recv(2048)
-            data = data.decode("ascii")
-            string_data = ""
-            for i in range(math.ceil(int(data) / 2048)):
-                temp = s.recv(2048)
-                temp = temp.decode()
-                string_data = string_data + str(temp)
+    def run(self):
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        except socket.error:
+            print('Unable to connect to the server')
+            sys.exit(-1)
+        try:
+            s.connect((self.host, self.port))
+            while self.online:
+                message = input()
+                formatted_message = build_message(message)
+                if formatted_message.startswith("cd"):
+                    self.curr_dir = formatted_message[2:]
+                    self.change_dir()
+                    continue
+                if formatted_message is None:
+                    continue
+                s.sendall(str(len(formatted_message.encode('utf-8'))).encode('ascii'))
+                s.sendall(formatted_message.encode('ascii'))
 
-            if string_data.startswith("pull#"):
-                string_data = string_data[5:]
-                push_client_side(string_data, "./")
-                print('Pull successful')
-            else:
-                print('$', string_data)
-            if message == 'stop':
-                break
+                rec_message = ""
+                message_size = s.recv(2048).decode("ascii")
+                for i in range(math.ceil(int(message_size) / 2048)):
+                    message_part = s.recv(2048).decode()
+                    rec_message = rec_message + str(message_part)
 
-    except socket.error:
-        print('Connection was disturbed!')
-    finally:
-        s.close()
+                if rec_message.startswith("pull#"):
+                    rec_message = rec_message[5:]
+                    push_client_side(rec_message, "./")
+                    print('Pull successful')
+                else:
+                    print('$', rec_message)
+                if rec_message == 'stop':
+                    self.online = False
+
+        except socket.error:
+            print('Connection was disturbed!')
+        finally:
+            s.close()
 
 
 if __name__ == '__main__':
-    # C:/Users/Amin/Desktop/C/dns
-    local_dir = input("Enter you Local directory: ")
-    os.chdir(local_dir)
-    client()
+    client = Client(8000, "127.0.0.1", 'C:/Users/Amin/Desktop/C/dns')
+    client.run()

@@ -15,7 +15,6 @@ def parse_message(message, account, curr_repo):
         curr_username = account.get_username()
         curr_pass = account.get_password()
         repositories = account.get_repositories()
-        print(repositories)
 
     if cmd == 'signUp':
         res = create_account(split_message[1], split_message[2])
