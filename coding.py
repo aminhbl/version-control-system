@@ -5,26 +5,24 @@ from datetime import *
 import file_handler
 
 
-def encode(_type, path):
-    outputContent = ""
-    if "f" in _type:
-        outputContent = outputContent + "file\n" + path + "\n" + encode_file(path) + "\ncrlf"
-
-    elif "d" in _type:
-        outputContent = 'dir' + encode_dir(path) + "\ncrlf"
-
-    return outputContent
+def encode(pattern, path):
+    if "f" in pattern:
+        return "file\n" + path + "\n" + encode_file(path) + "\ncrlf"
+    elif "d" in pattern:
+        return 'dir' + encode_dir(path) + "\ncrlf"
+    else:
+        return ""
 
 
 def encode_dir(path):
-    outputContent = ""
-    for fileName in os.listdir(path):
-        if os.path.isfile(path + "/" + fileName):
-            tmpPath = path + "/" + fileName
-            outputContent = outputContent + "\n" + tmpPath + "\n" + encode_file(tmpPath)
+    coded_files = ""
+    for dir_name in os.listdir(path):
+        curr_path = path + "/" + dir_name
+        if os.path.isfile(curr_path):
+            coded_files = coded_files + "\n" + curr_path + "\n" + encode_file(curr_path)
         else:
-            outputContent = outputContent + encode_dir(path + "/" + fileName)
-    return str(outputContent)
+            coded_files = coded_files + encode_dir(curr_path)
+    return coded_files
 
 
 def encode_file(path):
@@ -39,37 +37,41 @@ def encode_file(path):
         return encoded_file_str
 
 
-def decode(message, basePath, commit_message=None):
-    bodyList = str(message).split("\n")
+def decode_file(coded_file):
+    for i in range(len(coded_file)):
+        coded_file[i] = int(coded_file[i])
+    coded_file_bytes = bytes(coded_file)
+    uncompressed_coded_file = zlib.decompress(coded_file_bytes)
+    return b64decode(uncompressed_coded_file)
+
+
+def decode(message, root, commit_message=None):
+    split_message = str(message).split("\n")
     path_and_files = dict()
 
-    if "file" in bodyList[0]:
-        path_and_files[bodyList[1]] = bodyList[2]
-    elif "dir" in bodyList[0]:
+    if "file" in split_message[0]:
+        path_and_files[split_message[1]] = split_message[2]
+    elif "dir" in split_message[0]:
         counter = 1
         while True:
-            if "crlf" in bodyList[counter]:
+            if "crlf" in split_message[counter]:
                 break
-            path_and_files[bodyList[counter]] = bodyList[counter + 1]
+            path_and_files[split_message[counter]] = split_message[counter + 1]
             counter += 2
 
-    for path in path_and_files.keys():
+    for path in path_and_files:
         try:
-            os.makedirs(basePath + "/" + "/".join(path.split('/')[0:-1]))
+            os.makedirs(root + "/" + "/".join(path.split('/')[0:-1]))
         except FileExistsError:
             pass
         finally:
-            rawDataString = path_and_files[path].split("*")
-            for i in range(len(rawDataString)):
-                rawDataString[i] = int(rawDataString[i])
-            compressedData = bytes(rawDataString)
-            uncompressedData = zlib.decompress(compressedData)
-            decodedData = b64decode(uncompressedData)
-            file_handler.write_binary(basePath + "/" + path, decodedData)
+            coded_file = path_and_files[path].split("*")
+            decoded_file = decode_file(coded_file)
+            file_handler.write_binary(root + "/" + path, decoded_file)
 
     if commit_message is not None:
         try:
-            with open(basePath + "/" + "commits.txt", "a") as o:
+            with open(root + "/" + "commits.txt", "a") as o:
                 o.write("{}|{}\n".format(commit_message, datetime.now()))
         except FileExistsError:
             print("Commit file not found!")

@@ -85,7 +85,7 @@ def parse_message(message, account, curr_repo):
             return cmd, 'Current repo\'s commits:\n' + file_handler.read_text(commit_path)
 
         if cmd == 'sync':
-            return "pull#" + str(pull_server_side(curr_username, curr_pass, curr_repo, "./", "-d"))
+            return cmd, "pull#" + str(pull_server_side(curr_username, curr_pass, curr_repo, "./", "-d"))
 
         if cmd == 'invCollab':
             if split_message[1] is None:

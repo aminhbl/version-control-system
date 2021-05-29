@@ -16,6 +16,7 @@ class Client:
 
     def change_dir(self):
         os.chdir(self.curr_dir)
+        print('The current directory is:\n\t{}'.format(self.curr_dir))
 
     def run(self):
         try:
