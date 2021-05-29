@@ -1,150 +1,110 @@
 import os
-import pickle
 import coding
-import subprocess
+from datetime import *
+import file_handler
 from server.account import Account
 
 
 def authenticate_account(username, password):
-    users = load_accounts()
-
-    for user in users:
-        if user.get_username() == username and user.check_password(password):
-            return user
-
+    accounts = restore_accounts()
+    for account in accounts:
+        if account.authenticate(username, password):
+            return account
     return None
 
 
-def load_accounts():
-    file = None
-    try:
-        file = open('server/DB/accounts', 'rb')
-        users = pickle.load(file)
-    except IOError:
-        users = list()
-    finally:
-        if file is not None:
-            file.close()
-
-    return users
+def restore_accounts():
+    accounts = file_handler.pickle_read('server/DB/accounts')
+    if accounts is None:
+        return list()
+    return accounts
 
 
-def save_accounts(users):
-    file = None
-    try:
-        file = open('server/DB/accounts', 'wb')
-        pickle.dump(users, file)
-    except IOError as error:
-        print(error)
-    finally:
-        file.close()
+def store_accounts(users):
+    file_handler.pickle_write('server/DB/accounts', users)
 
 
 def create_account(username, password):
-    users = load_accounts()
-    new_user = Account(username, password)
-    for user in users:
-        if new_user == user:
+    accounts = restore_accounts()
+    new_acc = Account(username, password)
+    for account in accounts:
+        if new_acc.get_username() == account.get_username():
             return False
-    users.append(new_user)
-    save_accounts(users)
-    account_root = os.path.join('server/DB', new_user.get_username())
+    accounts.append(new_acc)
+    store_accounts(accounts)
     try:
+        account_root = os.path.join('server/DB', new_acc.get_username())
         os.mkdir(account_root)
     except OSError as error:
         print(error)
     return True
 
 
-def pull_server_side(username, password, repository, path, type_):
-    user = authenticate_account(username, password)
-    if user is None:
-        return None
-    pathT = path
-
-    repositories = user.get_repositories()
-    answer = ""
-    for x in repositories:
-        if x == repository:
-            answer = repositories[x]
-            break
-
-    last = os.getcwd()
-    print("server/DB/" + answer.get_username() + "/" + repository)
-    os.chdir("server/DB/" + answer.get_username() + "/" + repository)
-    ans = coding.encode(type_, pathT)
-    os.chdir(last)
-
-    print(ans)
-    return ans
-
-
-def Opull_server_side(username, repository, path, type_):
-    pathT = path
-    last = os.getcwd()
+def fetch_plus(username, repository, path, pattern):
+    before = os.getcwd()
     os.chdir("server/DB/" + username + "/" + repository)
-    ans = coding.encode(type_, pathT)
-    os.chdir(last)
-    return ans
+    res = coding.encode(pattern, path)
+    os.chdir(before)
+    return res
 
 
-def push_server_side(username, password, messageBody, repository, commit_message):
-    user = authenticate_account(username, password)
-    if user is None:
-        return False
-    repositories = user.get_repositories()
-    answer = ""
-    for x in repositories:
-        if x == repository:
-            answer = repositories[x]
+def place_on_server(username, password, messageBody, repository, commit_message):
+    # change something
+    account = authenticate_account(username, password)
+    repositories = account.get_repositories()
+    owner = ""
+    for rep in repositories:
+        if rep == repository:
+            owner = repositories[rep]
             break
-    pathT = "server/DB/" + answer.get_username() + "/" + repository
-    print(pathT)
-    coding.decode(messageBody, pathT, commit_message)
+    pathT = "server/DB/" + owner.get_username() + "/" + repository
+    coding.decode(messageBody, pathT)
+    register_commit(pathT, commit_message)
 
-    return True
+
+def register_commit(root, commit_message):
+    if commit_message is not None:
+        file_handler.write_text(root + "/" + "commits.txt", "{}|{}\n".format(commit_message, datetime.now()))
 
 
 def pull_client_side(path, type_):
     return coding.encode(type_, path)
 
 
-def push_client_side(messageBody, path):
-    coding.decode(messageBody, path)
+def fetch_from_server(username, password, repository, path, pattern):
+    account = authenticate_account(username, password)
+    repositories = account.get_repositories()
+    repo_owner = None
+    for rep in repositories:
+        if rep == repository:
+            repo_owner = repositories[rep]
+            break
+    before = os.getcwd()
+    os.chdir("server/DB/" + repo_owner.get_username() + "/" + repository)
+    res = coding.encode(pattern, path)
+    os.chdir(before)
+    return res
 
 
 def add_contributor(username, password, new_user_username, repository):
     user = authenticate_account(username, password)
-    users = load_accounts()
-    if user is None:
-        return False
-
+    users = restore_accounts()
     for user_ in users:
         if user_.get_username() == new_user_username:
             user_.add_repository(repository, self_owner=False, owner_user=user)
-            save_accounts(users)
-            return True
-
-    return False
+            store_accounts(users)
 
 
 def create_repo(username, password, repository_name):
-    user = authenticate_account(username, password)
-    users = load_accounts()
-    if user is None:
-        return False
-    base_directory = user.get_username()
-    path = os.path.join('server/DB', base_directory, repository_name)
-
+    accounts = restore_accounts()
+    curr_account = authenticate_account(username, password)
+    path = os.path.join('server/DB', username, repository_name)
     try:
         os.mkdir(path)
     except OSError as error:
         print(error)
-    for user_ in users:
-        if user_ == user:
-            user_.add_repository(repository_name)
+    for acc in accounts:
+        if acc.get_username() == curr_account.get_username():
+            acc.add_repository(repository_name)
             break
-
-    save_accounts(users)
-
-    return True
+    store_accounts(accounts)

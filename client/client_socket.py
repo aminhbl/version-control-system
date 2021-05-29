@@ -3,7 +3,7 @@ import os
 import socket
 import sys
 from client.client_parser import build_message
-from server.git_manager import push_client_side
+import coding
 
 
 class Client:
@@ -29,11 +29,11 @@ class Client:
             while self.online:
                 message = input()
                 formatted_message = build_message(message)
+                if formatted_message is None:
+                    continue
                 if formatted_message.startswith("cd"):
                     self.curr_dir = formatted_message[2:]
                     self.change_dir()
-                    continue
-                if formatted_message is None:
                     continue
                 s.sendall(str(len(formatted_message.encode('utf-8'))).encode('ascii'))
                 s.sendall(formatted_message.encode('ascii'))
@@ -46,7 +46,8 @@ class Client:
 
                 if rec_message.startswith("pull#"):
                     rec_message = rec_message[5:]
-                    push_client_side(rec_message, "./")
+                    # pull after fetched from server
+                    coding.decode(rec_message, "./")
                     print('Pull successful')
                 else:
                     print('$', rec_message)

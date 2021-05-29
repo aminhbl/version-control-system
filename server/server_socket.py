@@ -41,26 +41,24 @@ class ThreadHandler(threading.Thread):
                     break
                 rec_message = rec_message + str(message_part)
 
-            cmd, answer = server_parser.parse_message(rec_message, account, curr_repo)
-
+            cmd, res = server_parser.parse_message(rec_message, account, curr_repo)
+            if res is None:
+                res = "Fatal error!"
             if cmd == "signUp" or cmd == 'login':
-                if answer is not None:
-                    account = answer
-                    answer = 'Login successful'
+                if type(res) is not str:
+                    account = res
+                    res = 'Login successful'
             if cmd == 'goto':
-                if answer is not None:
-                    curr_repo = answer
-                    answer = "{} repo is pinned".format(answer)
+                if res is not None:
+                    curr_repo = res
+                    res = "{} repo is pinned".format(res)
                 else:
-                    answer = 'Wrong repo name!'
-            if answer is None:
-                answer = "ERROR!"
+                    res = 'Wrong repo name!'
 
-            self.connection.sendall(str(len(answer.encode('utf-8'))).encode('ascii'))
-            self.connection.sendall(bytes(answer, 'UTF-8'))
-
+            self.connection.sendall(str(len(res.encode('utf-8'))).encode('ascii'))
+            self.connection.sendall(bytes(res, 'UTF-8'))
         self.connection.close()
-        print("client at ", self.address, " disconnected.")
+        print(self.address, " disconnected.")
 
 
 if __name__ == '__main__':

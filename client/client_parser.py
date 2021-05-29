@@ -1,5 +1,5 @@
+import coding
 from server.git_manager import pull_client_side
-import os
 
 
 def build_message(cmd):
@@ -36,8 +36,11 @@ def build_message(cmd):
             return "#".join(["goto", parts[1], "#"])
 
     if "push" in cmd:
+        path = parts[-1].split("\"")[1]
         commitMessage = cmd.split("\"")[1]
-        data = pull_client_side(parts[-1][1:-1], parts[-2][1])
+        pattern = parts[-2][1]
+        # push to be placed on server:
+        data = pull_client_side(path, pattern)
         return "#".join(["push", commitMessage, data, "#"])
 
     if "pull" in cmd:
