@@ -1,6 +1,7 @@
 from git_manager import *
 import file_handler
 from account import *
+import os
 
 
 def parse_message(message, account, curr_repo):
@@ -43,6 +44,11 @@ def parse_message(message, account, curr_repo):
         if repos == '{}\'s repos:\n'.format(curr_username):
             repos = "No repo yet!"
         return cmd, repos
+
+    if cmd == 'lsDir':
+        des_repo = split_message[1]
+        entries = os.listdir("server/DB/" + curr_username + "/" + des_repo)
+        return cmd, 'at {}:\n'.format(des_repo) + "\n".join(entries)
 
     if cmd == 'goto':
         repository_name = split_message[1]

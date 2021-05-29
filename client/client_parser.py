@@ -1,5 +1,5 @@
 import coding
-from server.git_manager import pull_client_side
+from server.git_manager import client_push
 
 
 def build_message(cmd):
@@ -28,7 +28,17 @@ def build_message(cmd):
             return "#".join(["rlsRepo", parts[1], "#"])
         return "lsRepo#"
 
-    if "goto" in cmd:
+    if "lsDir" in cmd:
+        if len(parts) < 2:
+            print('Repo name not specified!')
+            return None
+        else:
+            return "#".join(["lsDir", parts[1], "#"])
+
+    if "download" in cmd:
+        return "sync#"
+
+    if "pin" in cmd:
         if len(parts) < 2:
             print('Repo name not specified!')
             return None
@@ -40,11 +50,14 @@ def build_message(cmd):
         commitMessage = cmd.split("\"")[1]
         pattern = parts[-2][1]
         # push to be placed on server:
-        data = pull_client_side(path, pattern)
+        data = client_push(path, pattern)
         return "#".join(["push", commitMessage, data, "#"])
 
     if "pull" in cmd:
         return "#".join(["pull", parts[-2][1], parts[2][1:-1], "#"])
+
+    if "dlRepo" in cmd:
+        return "#".join(["+Pull", parts[1], parts[2], "-d", "./", "#"])
 
     if "lsComm" in cmd:
         return "lsComm#"

@@ -24,18 +24,6 @@ def encode_dir(path):
     return coded_files
 
 
-def encode_file(path):
-    with open(path, 'rb') as o:
-        file_bytes = o.read()
-        encoded_file = b64encode(file_bytes)
-        comp_file = zlib.compress(encoded_file, 1)
-        encoded_file_str = ""
-        for part in comp_file:
-            encoded_file_str = encoded_file_str + str(part) + "*"
-        encoded_file_str = encoded_file_str[0:- 1]
-        return encoded_file_str
-
-
 def decode_file(coded_file, length):
     coded_file_int = list()
     for i in range(length):
@@ -72,3 +60,14 @@ def decode(message, root):
             coded_file = path_and_files[path].split("*")
             decoded_file = decode_file(coded_file, len(coded_file))
             file_handler.write_binary(root + "/" + path, decoded_file)
+
+
+def encode_file(path):
+    with open(path, 'rb') as o:
+        file_bytes = o.read()
+        comp_file = zlib.compress(b64encode(file_bytes), 1)
+        encoded_file_str = ""
+        for part in comp_file:
+            encoded_file_str = encoded_file_str + str(part) + "*"
+        encoded_file_str = encoded_file_str[0:- 1]
+        return encoded_file_str
